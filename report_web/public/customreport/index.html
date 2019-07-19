@@ -1,0 +1,409 @@
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js" integrity="sha384-NaWTHo/8YCBYJ59830LTz/P4aQZK1sS0SneOgAvhsIl3zBu8r9RevNg5lHCHAuQ/" crossorigin="anonymous"></script>-->
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.js"></script>-->
+
+<!doctype html>
+<html>
+<head>
+
+    <script src="https://www.gstatic.com/firebasejs/6.3.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.3.0/firebase-firestore.js"></script>
+    <script src="get_data.js"></script>
+
+    <link rel="stylesheet" href="css/foopicker.css">
+    <script src="js/foopicker.js"></script>
+
+
+    <meta charset="utf-8">
+    <title>Daily Sales Report</title>
+
+    <style>
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 50px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, .15);
+            font-size: 15px;
+            line-height: 24px;
+            font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+            color: #555;
+        }
+
+        .invoice-box table {
+            width: 100%;
+            line-height: inherit;
+            text-align: left;
+        }
+
+        .invoice-box table td {
+            padding: 5px;
+            vertical-align: top;
+        }
+
+        .invoice-box table tr td:nth-child(2) {
+            text-align: right;
+        }
+
+        .invoice-box table tr.top table td {
+            padding-bottom: 20px;
+        }
+
+        .invoice-box table tr.top table td.title {
+            font-size: 45px;
+            line-height: 45px;
+            color: #333;
+        }
+
+        .invoice-box table tr.information table td {
+            padding-bottom: 40px;
+        }
+
+        .invoice-box table tr.heading td {
+            background: #eee;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+
+        .invoice-box table tr.detail td {
+            border-bottom: 0.25px solid #eee;
+            padding-left: 40px;
+            padding-right: 25px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .invoice-box table tr.details td {
+            border-bottom: 0.25px solid #eee;
+            padding-left: 60px;
+            padding-right: 10px;
+            font-size: 14px;
+        }
+
+        .invoice-box table tr.item td{
+            border-bottom: 1px solid #eee;
+        }
+
+        .invoice-box table tr.item.last td {
+            border-bottom: none;
+        }
+
+        .invoice-box table tr.total td:nth-child(2) {
+            border-top: 2px solid #eee;
+            font-weight: bolder;
+            padding: 10px
+        }
+
+        .sendButton {
+            -moz-box-shadow:inset 0px 1px 0px 0px #ffffff;
+            -webkit-box-shadow:inset 0px 1px 0px 0px #ffffff;
+            box-shadow:inset 0px 1px 0px 0px #ffffff;
+            background-color:transparent;
+            -moz-border-radius:6px;
+            -webkit-border-radius:6px;
+            border-radius:6px;
+            border:1px solid #dcdcdc;
+            display:inline-block;
+            cursor:pointer;
+            color:#666666;
+            font-family:Arial;
+            font-size:15px;
+            font-weight:bold;
+            padding:6px 24px;
+            text-decoration:none;
+            text-shadow:0px 1px 0px #ffffff;
+        }
+
+        .sendButton:hover {
+            background-color:transparent;
+        }
+
+        .sendButton:active {
+            position:relative;
+            top:1px;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .invoice-box table tr.top table td {
+                width: 100%;
+                display: block;
+                text-align: center;
+            }
+
+            .invoice-box table tr.information table td {
+                width: 100%;
+                display: block;
+                text-align: center;
+            }
+        }
+
+        /** RTL **/
+        .rtl {
+            direction: rtl;
+            font-family: Tahoma, 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+        }
+
+        .rtl table {
+            text-align: right;
+        }
+
+        .rtl table tr td:nth-child(2) {
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+<div class="invoice-box">
+    <table cellpadding="0" cellspacing="0">
+        <tr class="top">
+            <td colspan="2">
+                <table>
+                    <tr>
+                        <td class="title">
+                            <img src="https://dewey.tailorbrands.com/production/brand_version_mockup_image/704/2138254704_a79fd46e-21fa-46dd-8096-159a0b983bb2.png?cb=1562443008" style="width:100%; max-width:300px;">
+                        </td>
+
+                        <td><input type="text" id="datepicker"/>
+                            <button type="button" class="sendButton" style="float: right;" onclick="getFromDatabase(document.getElementById('datepicker').value);">Load</button>
+                            <br><br>Created: <span id="date"></span><br>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+
+        <tr class="information">
+            <td colspan="2">
+                <table>
+                    <tr>
+                        <td>
+                            Space E.Um Inc.<br>
+                            3020 Wilshire Blvd #100<br>
+                            Los Angeles, CA 90010
+                        </td>
+
+                        <td>
+                            Closing employee:<br>
+                            <span id="name"></span><br>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+
+        <tr class="heading">
+            <td>
+                Sales Information
+            </td>
+
+            <td>
+                Amount ($)
+            </td>
+        </tr>
+
+        <tr class="item">
+            <td>
+                Total Cash Sale
+            </td>
+
+            <td>
+                <span id="cash_sale"></span>
+            </td>
+        </tr>
+
+        <tr class="item">
+            <td>
+                Total Card Sale
+            </td>
+
+            <td>
+                <span id="card_sale"></span>
+            </td>
+        </tr>
+
+        <tr class="item">
+            <td>
+                Total Fees
+            </td>
+
+            <td>
+                <span id="total_fees"></span>
+            </td>
+        </tr>
+
+        <tr class="item last">
+            <td>
+                Total Refunds
+            </td>
+
+            <td>
+                <span id="total_refunds"></span>
+            </td>
+        </tr>
+
+        <tr class="item">
+            <td>
+                Card Tip
+            </td>
+
+            <td>
+                <span id="card_tip"></span>
+            </td>
+        </tr>
+
+        <tr class="total">
+            <td></td>
+
+            <td>
+                Net Total Sale: <span id="net_sale"></span>
+
+        <tr class="heading">
+            <td>
+                Register Information
+            </td>
+
+            <td>
+                Amount ($)
+            </td>
+        </tr>
+    </table>
+    <table>
+        <tr class="item last">
+            <td>
+                Cash In Drawer
+            </td>
+            <td>
+            </td>
+        </tr>
+
+        <tr class="details">
+            <td>
+                $100
+            </td>
+
+            <td>
+                <span id="hundred"></span>
+            </td>
+
+            <td>
+                $0.25
+            </td>
+
+            <td>
+                <span id="quarter"></span>
+            </td>
+        </tr>
+
+        <tr class="details">
+            <td>
+                $50
+            </td>
+
+            <td>
+                <span id="fifty"></span>
+            </td>
+
+            <td>
+                $0.10
+            </td>
+
+            <td>
+                <span id="dime"></span>
+            </td>
+        </tr>
+
+        <tr class="details">
+            <td>
+                $20
+            </td>
+
+            <td>
+                <span id="twenty"></span>
+            </td>
+
+            <td>
+                $0.05
+            </td>
+
+            <td>
+                <span id="nickel"></span>
+            </td>
+        </tr>
+
+        <tr class="details">
+            <td>
+                $10
+            </td>
+
+            <td>
+                <span id="ten"></span>
+            </td>
+
+            <td>
+                $0.01
+            </td>
+
+            <td>
+                <span id="cent"></span>
+            </td>
+        </tr>
+
+        <tr class="details">
+            <td>
+                $5
+            </td>
+
+            <td>
+                <span id="five"></span>
+            </td>
+
+            <td>
+                Coin Rolls
+            </td>
+
+            <td>
+                <b><span id="roll"></span></b>
+            </td>
+        </tr>
+
+        <tr class="details">
+            <td>
+                $1
+            </td>
+
+            <td>
+                <span id="one"></span>
+            </td>
+
+            <td>
+                <b>Sub Total:</b>
+            </td>
+            <td>
+                <b><span id="cash_in_drawer"></span></b>
+            </td>
+        </tr>
+        <tr class="details">
+            <td></td>
+            <td></td>
+            <td>
+                <b>Cash Discrepancy</b>
+            </td>
+
+            <td>
+                <b><span id="discrepancy"></span></b>
+            </td>
+        </tr>
+    </table>
+
+    <!--<button type="button" class="sendButton" style="float: right;" onclick="">Send</button>-->
+</div>
+
+<script type="text/javascript">
+    var foopicker = new FooPicker({
+        id: 'datepicker',
+        dateFormat: 'yyyy/MM/dd'
+    });
+</script>
+
+</body>
+</html>
